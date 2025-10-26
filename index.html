@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEMT Turbine Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>BEMT Turbine Simulator 🌪️</h1>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Parameters</h2>
+            
+            <label for="airfoil-select">Airfoil:</label>
+            <select id="airfoil-select"></select>
+            
+            <label for="num-blades">Number of Blades (B):</label>
+            <input type="number" id="num-blades" value="2">
+            
+            <label for="radius">Blade Radius (m):</label>
+            <input type="number" id="radius" value="0.15">
+            
+            <label for="hub-radius">Hub Radius (m):</label>
+            <input type="number" id="hub-radius" value="0.0125">
+
+            <label for="rpm">Constant RPM:</label>
+            <input type="number" id="rpm" value="5000">
+
+            <label for="geom-data">Blade Geometry (r/R, c/R, Twist):</label>
+            <textarea id="geom-data" rows="10">
+0.20,0.1842,43.82
+0.30,0.2195,35.34
+0.40,0.2296,27.94
+0.50,0.2213,22.92
+0.60,0.2003,19.58
+0.70,0.1711,16.83
+0.80,0.1376,14.80
+0.90,0.1017,13.13
+1.00,0.0659,12.17
+            </textarea>
+
+            <h3>Simulation Range</h3>
+            <label for="v-start">Start Wind Speed (m/s):</label>
+            <input type="number" id="v-start" value="3">
+            
+            <label for="v-end">End Wind Speed (m/s):</label>
+            <input type="number" id="v-end" value="20">
+            
+            <label for="v-steps">Number of Points:</label>
+            <input type="number" id="v-steps" value="30">
+            
+            <button id="run-button">Run Simulation</button>
+            <div id="loading-spinner" class="spinner" style="display:none;"></div>
+        </div>
+        
+        <div class="main-content">
+            <h2>Results</h2>
+            <div id="results-summary">
+                <p>Please run a simulation.</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="cp-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="ct-chart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script src="airfoil_data.js"></script>
+    <script src="bemt_solver.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
