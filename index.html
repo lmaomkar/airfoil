@@ -3,74 +3,686 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BEMT Turbine Simulator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>BEMT Propeller Calculator</title>
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load Chart.js for plotting -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Simple dark mode and font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        html.dark {
+            color-scheme: dark;
+        }
+        /* Custom scrollbar for textareas */
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* dark:gray-600 */
+            border-radius: 3px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background-color: #1f2937; /* dark:gray-800 */
+        }
+    </style>
 </head>
-<body>
-    <h1>BEMT Turbine Simulator 🌪️</h1>
-    <div class="container">
-        <div class="sidebar">
-            <h2>Parameters</h2>
-            
-            <label for="airfoil-select">Airfoil:</label>
-            <select id="airfoil-select"></select>
-            
-            <label for="num-blades">Number of Blades (B):</label>
-            <input type="number" id="num-blades" value="2">
-            
-            <label for="radius">Blade Radius (m):</label>
-            <input type="number" id="radius" value="0.15">
-            
-            <label for="hub-radius">Hub Radius (m):</label>
-            <input type="number" id="hub-radius" value="0.0125">
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen p-4 sm:p-8">
 
-            <label for="rpm">Constant RPM:</label>
-            <input type="number" id="rpm" value="5000">
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">Propeller BEMT Calculator</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400 mt-2">
+                An interactive web-based Blade Element Momentum Theory (BEMT) solver based on your MATLAB script.
+            </p>
+        </header>
 
-            <label for="geom-data">Blade Geometry (r/R, c/R, Twist):</label>
-            <textarea id="geom-data" rows="10">
-0.20,0.1842,43.82
-0.30,0.2195,35.34
-0.40,0.2296,27.94
-0.50,0.2213,22.92
-0.60,0.2003,19.58
-0.70,0.1711,16.83
-0.80,0.1376,14.80
-0.90,0.1017,13.13
-1.00,0.0659,12.17
-            </textarea>
+        <!-- Main Grid: Inputs | Results -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <h3>Simulation Range</h3>
-            <label for="v-start">Start Wind Speed (m/s):</label>
-            <input type="number" id="v-start" value="3">
-            
-            <label for="v-end">End Wind Speed (m/s):</label>
-            <input type="number" id="v-end" value="20">
-            
-            <label for="v-steps">Number of Points:</label>
-            <input type="number" id="v-steps" value="30">
-            
-            <button id="run-button">Run Simulation</button>
-            <div id="loading-spinner" class="spinner" style="display:none;"></div>
-        </div>
-        
-        <div class="main-content">
-            <h2>Results</h2>
-            <div id="results-summary">
-                <p>Please run a simulation.</p>
+            <!-- === INPUTS PANEL === -->
+            <div class="lg:col-span-1 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-300 dark:border-gray-700 pb-2">Inputs</h2>
+
+                <!-- Operating Conditions -->
+                <section>
+                    <h3 class="text-lg font-medium text-blue-600 dark:text-blue-400">Operating Conditions</h3>
+                    <div class="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                            <label for="v-inf" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Velocity (m/s)</label>
+                            <input type="number" id="v-inf" value="10" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="rpm" class="block text-sm font-medium text-gray-700 dark:text-gray-300">RPM</label>
+                            <input type="number" id="rpm" value="5000" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Propeller & Fluid Properties -->
+                <section class="mt-6">
+                    <h3 class="text-lg font-medium text-blue-600 dark:text-blue-400">Propeller & Fluid</h3>
+                    <div class="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                            <label for="radius" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Radius (m)</label>
+                            <input type="number" id="radius" value="0.15" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="blades" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Blades (B)</label>
+                            <input type="number" id="blades" value="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="hub-radius" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hub Radius (m)</label>
+                            <input type="number" id="hub-radius" value="0.0125" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="density" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Density (kg/m³)</label>
+                            <input type="number" id="density" value="1.225" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="viscosity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Dyn. Visc. (Pa·s)</label>
+                            <input type="number" id="viscosity" value="1.81e-5" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Solver Settings -->
+                <section class="mt-6">
+                    <h3 class="text-lg font-medium text-blue-600 dark:text-blue-400">Solver Settings</h3>
+                    <div class="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                            <label for="elements" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Elements (N)</label>
+                            <input type="number" id="elements" value="50" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="tolerance" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tolerance</label>
+                            <input type="number" id="tolerance" value="1e-6" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Data Inputs -->
+                <section class="mt-6">
+                    <h3 class="text-lg font-medium text-blue-600 dark:text-blue-400">Propeller Geometry</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Paste CSV data: (r/R, c/R, Twist_deg)</p>
+                    <textarea id="geometry-data" rows="10" class="mt-2 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm">0.20, 0.1842, 43.82
+0.30, 0.2195, 35.34
+0.40, 0.2296, 27.94
+0.50, 0.2213, 22.92
+0.60, 0.2003, 19.58
+0.70, 0.1711, 16.83
+0.80, 0.1376, 14.80
+0.90, 0.1017, 13.13
+1.00, 0.0659, 12.17</textarea>
+                </section>
+
+                <section class="mt-6">
+                    <h3 class="text-lg font-medium text-blue-600 dark:text-blue-400">Airfoil Data</h3>
+                    <label for="airfoil-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload .dat or .csv (alpha_deg, cl, cd)</label>
+                    <input type="file" id="airfoil-file" accept=".dat,.csv,.txt" class="mt-2 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        dark:file:bg-blue-900 dark:file:text-blue-300
+                        hover:file:bg-blue-100 dark:hover:file:bg-blue-800">
+                    <span id="file-name" class="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">No file selected.</span>
+                </section>
+
+                <!-- Action Button -->
+                <section class="mt-8">
+                    <button id="calculate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="btn-text">Calculate</span>
+                        <span id="btn-spinner" class="hidden">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Calculating...
+                        </span>
+                    </button>
+                    <div id="error-message" class="mt-4 text-red-500 dark:text-red-400 text-sm"></div>
+                </section>
             </div>
-            <div class="chart-container">
-                <canvas id="cp-chart"></canvas>
-            </div>
-            <div class="chart-container">
-                <canvas id="ct-chart"></canvas>
+
+            <!-- === RESULTS PANEL === -->
+            <div class="lg:col-span-2">
+                <!-- Key Metrics -->
+                <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">Results</h2>
+                    <div id="results-output" class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center" style="display: none;">
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Thrust</div>
+                            <div id="out-thrust" class="text-2xl font-bold text-blue-600 dark:text-blue-400">-- N</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Torque</div>
+                            <div id="out-torque" class="text-2xl font-bold text-blue-600 dark:text-blue-400">-- N·m</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Required Power</div>
+                            <div id="out-power" class="text-2xl font-bold text-blue-600 dark:text-blue-400">-- W</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Efficiency ($\eta$)</div>
+                            <div id="out-eta" class="text-2xl font-bold text-green-600 dark:text-green-400">-- %</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Advance Ratio (J)</div>
+                            <div id="out-j" class="text-2xl font-bold text-gray-700 dark:text-gray-300">--</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Thrust Coeff. ($C_T$)</div>
+                            <div id="out-ct" class="text-2xl font-bold text-gray-700 dark:text-gray-300">--</div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Power Coeff. ($C_P$)</div>
+                            <div id="out-cp" class="text-2xl font-bold text-gray-700 dark:text-gray-300">--</div>
+                        </div>
+                    </div>
+                    <div id="results-placeholder" class="text-center text-gray-500 dark:text-gray-400 py-10">
+                        Fill in the inputs and click "Calculate" to see the results.
+                    </div>
+                </div>
+
+                <!-- Plots -->
+                <div classs="mt-6 grid grid-cols-1 gap-6">
+                    <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-lg mt-6">
+                        <h3 class="text-xl font-semibold mb-4">Blade Load Distributions</h3>
+                        <canvas id="plot-distributions"></canvas>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-lg mt-6">
+                        <h3 class="text-xl font-semibold mb-4">Aerodynamic Conditions</h3>
+                        <canvas id="plot-aero"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <script src="airfoil_data.js"></script>
-    <script src="bemt_solver.js"></script>
-    <script src="main.js"></script>
+
+    <!-- === JAVASCRIPT LOGIC === -->
+    <script>
+        // Global variables to store parsed data and charts
+        let airfoilData = null;
+        let distChart = null;
+        let aeroChart = null;
+
+        // --- 3. HELPER FUNCTIONS (MATLAB to JS) ---
+
+        /**
+         * Parses text data (from file or textarea) into a 2D array of numbers.
+         * Assumes CSV or space-separated, ignores lines starting with '#'.
+         */
+        function parseTextData(text) {
+            try {
+                return text
+                    .split('\n')
+                    .filter(line => line.trim() !== '' && !line.trim().startsWith('#')) // Ignore empty lines and comments
+                    .map(line => line.trim().split(/[\s,]+/).map(Number)); // Split by space or comma, convert to number
+            } catch (error) {
+                console.error("Error parsing data:", error);
+                throw new Error("Failed to parse data. Check format.");
+            }
+        }
+
+        /**
+         * 1D Linear Interpolation
+         * A simple replacement for MATLAB's interp1(..., 'linear')
+         * NOTE: Your MATLAB code used 'pchip' (cubic), which is much more complex.
+         * This linear version is a simplification but works well for most airfoil tables.
+         * It also includes 'extrap' functionality.
+         */
+        function interp1d(x_data, y_data, x_val) {
+            let i = x_data.findIndex(x => x > x_val);
+
+            if (i === -1) { // Extrapolate (higher)
+                return y_data[y_data.length - 1] + (x_val - x_data[x_data.length - 1]) * (y_data[y_data.length - 1] - y_data[y_data.length - 2]) / (x_data[x_data.length - 1] - x_data[x_data.length - 2]);
+            }
+            if (i === 0) { // Extrapolate (lower)
+                return y_data[0] + (x_val - x_data[0]) * (y_data[1] - y_data[0]) / (x_data[1] - x_data[0]);
+            }
+
+            // Linear interpolation
+            const x0 = x_data[i - 1];
+            const y0 = y_data[i - 1];
+            const x1 = x_data[i];
+            const y1 = y_data[i];
+
+            return y0 + (y1 - y0) * (x_val - x0) / (x1 - x0);
+        }
+
+        /**
+         * Creates an array of N evenly spaced numbers.
+         * Replacement for MATLAB's linspace.
+         */
+        function linspace(start, end, num) {
+            const arr = [];
+            const step = (end - start) / (num - 1);
+            for (let i = 0; i < num; i++) {
+                arr.push(start + (step * i));
+            }
+            return arr;
+        }
+
+        /**
+         * Calculates the trapezoidal integral of a dataset.
+         * Replacement for MATLAB's trapz.
+         */
+        function trapz(x, y) {
+            let sum = 0;
+            for (let i = 0; i < x.length - 1; i++) {
+                sum += (y[i] + y[i+1]) / 2 * (x[i+1] - x[i]);
+            }
+            return sum;
+        }
+
+        /**
+         * Converts degrees to radians.
+         */
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+        
+        /**
+         * Converts radians to degrees.
+         */
+         function rad2deg(rad) {
+            return rad * (180 / Math.PI);
+        }
+
+
+        // --- 4. MAIN BEMT SOLVER ---
+
+        /**
+         * The main BEMT solver function, ported from your MATLAB script.
+         */
+        function runBEMT() {
+            // --- 1. Get all inputs from the UI ---
+            const V_inf = parseFloat(document.getElementById('v-inf').value);
+            const RPM = parseFloat(document.getElementById('rpm').value);
+            const R = parseFloat(document.getElementById('radius').value);
+            const B = parseInt(document.getElementById('blades').value);
+            const hub_radius = parseFloat(document.getElementById('hub-radius').value);
+            const rho = parseFloat(document.getElementById('density').value);
+            const mu = parseFloat(document.getElementById('viscosity').value);
+            
+            const N_elements = parseInt(document.getElementById('elements').value);
+            const tolerance = parseFloat(document.getElementById('tolerance').value);
+            const max_iter = 100; // Hard-coded from your script
+
+            // Get geometry data from textarea
+            const geometryText = document.getElementById('geometry-data').value;
+            const geometryData = parseTextData(geometryText);
+            const r_R_data = geometryData.map(row => row[0]);
+            const c_R_data = geometryData.map(row => row[1]);
+            const twist_data_deg = geometryData.map(row => row[2]);
+
+            // Check if airfoil data is loaded
+            if (!airfoilData) {
+                throw new Error("Please upload an airfoil data file.");
+            }
+            const alpha_deg_data = airfoilData.map(row => row[0]);
+            const cl_data = airfoilData.map(row => row[1]);
+            const cd_data = airfoilData.map(row => row[2]);
+
+            // --- 2. Setup (identical to MATLAB) ---
+            const D = 2 * R;
+            const Omega = RPM * (2 * Math.PI / 60);
+            const n = RPM / 60;
+            const alpha_rad_data = alpha_deg_data.map(deg2rad);
+            const twist_data_rad = twist_data_deg.map(deg2rad);
+
+            // --- 3. BEMT Main Loop ---
+            
+            // Discretize the blade
+            const r_edges = linspace(r_R_data[0] * R, R, N_elements + 1);
+            const dr = r_edges[1] - r_edges[0];
+            const r_mid = r_edges.slice(0, -1).map(r => r + dr / 2);
+            const r_R_mid = r_mid.map(r => r / R); // For plotting
+
+            // Interpolate geometry to element midpoints
+            // Note: Using linear interpolation ('interp1d') as a simplification.
+            const r_R_data_m = r_R_data.map(r => r * R); // Scale to meters for interpolation
+            const c_R_data_m = c_R_data.map(c => c * R);
+            const chord = r_mid.map(r => interp1d(r_R_data_m, c_R_data_m, r));
+            const theta = r_mid.map(r => interp1d(r_R_data_m, twist_data_rad, r));
+
+            // Pre-allocate arrays
+            const Thrust_elem = new Array(N_elements).fill(0);
+            const Torque_elem = new Array(N_elements).fill(0);
+            const a_final = new Array(N_elements).fill(0);
+            const ap_final = new Array(N_elements).fill(0);
+            const phi_final = new Array(N_elements).fill(0);
+            const alpha_final = new Array(N_elements).fill(0);
+
+            // Loop through each element
+            for (let i = 0; i < N_elements; i++) {
+                const r = r_mid[i];
+                let a = 0.1;  // Initial guess for axial induction
+                let ap = 0.01; // Initial guess for tangential induction
+
+                for (let iter = 0; iter < max_iter; iter++) {
+                    // Inflow angle (phi)
+                    const phi = Math.atan2(V_inf * (1 + a), Omega * r * (1 - ap));
+
+                    // Angle of attack (alpha)
+                    const alpha = theta[i] - phi;
+
+                    // Get Cl and Cd from data for this alpha
+                    // Using our linear interpolation function
+                    const Cl = interp1d(alpha_rad_data, cl_data, alpha);
+                    const Cd = interp1d(alpha_rad_data, cd_data, alpha);
+
+                    // Project forces to normal and tangential directions
+                    const Cn = Cl * Math.cos(phi) - Cd * Math.sin(phi);
+                    const Ct = Cl * Math.sin(phi) + Cd * Math.cos(phi);
+
+                    // Prandtl's tip/hub loss correction
+                    let F = 1.0;
+                    if (Math.abs(Math.sin(phi)) < 1e-6) {
+                        F = 1.0; // Avoid div by zero
+                    } else {
+                        const f_tip = (B / 2) * (R - r) / (r * Math.abs(Math.sin(phi)));
+                        const F_tip = (2 / Math.PI) * Math.acos(Math.exp(-f_tip));
+                        const f_hub = (B / 2) * (r - hub_radius) / (hub_radius * Math.abs(Math.sin(phi)));
+                        const F_hub = (2 / Math.PI) * Math.acos(Math.exp(-f_hub));
+                        F = F_tip * F_hub;
+                    }
+
+                    // Core BEMT equations (from Ning textbook)
+                    const sigma = (B * chord[i]) / (2 * Math.PI * r); // local solidity
+                    const a_new = 1 / (((4 * F * Math.sin(phi)**2) / (sigma * Cn)) - 1);
+                    const ap_new = 1 / (((4 * F * Math.sin(phi) * Math.cos(phi)) / (sigma * Ct)) + 1);
+
+                    // Relaxation
+                    a = 0.5 * a + 0.5 * a_new;
+                    ap = 0.5 * ap + 0.5 * ap_new;
+
+                    // Convergence check
+                    if (Math.abs(a - a_new) < tolerance && Math.abs(ap - ap_new) < tolerance) {
+                        break; // Converged
+                    }
+                    if (iter === max_iter - 1) {
+                        console.warn(`BEMT did not converge for element ${i} at r=${r.toFixed(3)} m`);
+                    }
+                }
+
+                // Store final values for this element
+                a_final[i] = a;
+                ap_final[i] = ap;
+                phi_final[i] = phi;
+                alpha_final[i] = theta[i] - phi;
+
+                // Calculate this element's thrust and torque contribution
+                const W_sq = (V_inf * (1 + a))**2 + (Omega * r * (1 - ap))**2;
+                const phi = Math.atan2(V_inf * (1 + a), Omega * r * (1 - ap));
+                const Cl = interp1d(alpha_rad_data, cl_data, theta[i] - phi);
+                const Cd = interp1d(alpha_rad_data, cd_data, theta[i] - phi);
+                const Cn = Cl * Math.cos(phi) - Cd * Math.sin(phi);
+                const Ct = Cl * Math.sin(phi) + Cd * Math.cos(phi);
+                
+                Thrust_elem[i] = 0.5 * rho * W_sq * B * chord[i] * Cn; // N/m
+                Torque_elem[i] = 0.5 * rho * W_sq * B * chord[i] * Ct * r; // N-m/m
+            }
+
+            // --- 4. Calculate Totals & Performance ---
+            const Total_Thrust = trapz(r_mid, Thrust_elem);
+            const Total_Torque = trapz(r_mid, Torque_elem);
+            const Total_Power = Total_Torque * Omega;
+
+            const J = V_inf / (n * D); // Advance Ratio
+            const eta = (Total_Thrust * V_inf) / Total_Power; // Efficiency
+
+            // Ning's Definitions
+            const CT_ning = Total_Thrust / (rho * n**2 * D**4);
+            const CP_ning = Total_Power / (rho * n**3 * D**5);
+            
+            // --- 5. Return all results ---
+            return {
+                Total_Thrust,
+                Total_Torque,
+                Total_Power,
+                J,
+                eta,
+                CT_ning,
+                CP_ning,
+                // Data for plots
+                plot_r_R: r_R_mid,
+                plot_Thrust_elem: Thrust_elem,
+                plot_Torque_elem: Torque_elem,
+                plot_phi: phi_final.map(rad2deg),
+                plot_alpha: alpha_final.map(rad2deg),
+                plot_a: a_final,
+                plot_ap: ap_final
+            };
+        }
+
+        
+        // --- 5. UI EVENT LISTENERS & WIRING ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const calculateBtn = document.getElementById('calculate-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const airfoilFile = document.getElementById('airfoil-file');
+            const fileNameSpan = document.getElementById('file-name');
+            const errorMessage = document.getElementById('error-message');
+            const resultsOutput = document.getElementById('results-output');
+            const resultsPlaceholder = document.getElementById('results-placeholder');
+
+            // Handle file upload
+            airfoilFile.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    fileNameSpan.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            airfoilData = parseTextData(e.target.result);
+                            // Simple validation
+                            if (!airfoilData || airfoilData.length < 2 || airfoilData[0].length !== 3) {
+                                throw new Error("Invalid file format. Must be (alpha, cl, cd).");
+                            }
+                            errorMessage.textContent = '';
+                        } catch (err) {
+                            airfoilData = null;
+                            errorMessage.textContent = err.message;
+                            fileNameSpan.textContent = "Error reading file.";
+                        }
+                    };
+                    reader.onerror = () => {
+                        errorMessage.textContent = "Failed to read file.";
+                        fileNameSpan.textContent = "Error reading file.";
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            // Handle calculate button click
+            calculateBtn.addEventListener('click', () => {
+                // Clear previous errors/results
+                errorMessage.textContent = '';
+                
+                // Show loading state
+                calculateBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+
+                // Run calculation in a timeout to allow UI to update
+                setTimeout(() => {
+                    try {
+                        const results = runBEMT();
+                        
+                        // Display results
+                        resultsOutput.style.display = 'grid';
+                        resultsPlaceholder.style.display = 'none';
+
+                        document.getElementById('out-thrust').textContent = `${results.Total_Thrust.toFixed(2)} N`;
+                        document.getElementById('out-torque').textContent = `${results.Total_Torque.toFixed(3)} N·m`;
+                        document.getElementById('out-power').textContent = `${results.Total_Power.toFixed(2)} W`;
+                        document.getElementById('out-eta').textContent = `${(results.eta * 100).toFixed(1)} %`;
+                        document.getElementById('out-j').textContent = results.J.toFixed(3);
+                        document.getElementById('out-ct').textContent = results.CT_ning.toFixed(4);
+                        document.getElementById('out-cp').textContent = results.CP_ning.toFixed(5);
+
+                        // Update plots
+                        updatePlots(results);
+
+                    } catch (err) {
+                        console.error(err);
+                        errorMessage.textContent = err.message;
+                    } finally {
+                        // Hide loading state
+                        calculateBtn.disabled = false;
+                        btnText.classList.remove('hidden');
+                        btnSpinner.classList.add('hidden');
+                    }
+                }, 10); // 10ms timeout
+            });
+        });
+
+        // --- 6. PLOTTING FUNCTIONS ---
+
+        function updatePlots(results) {
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(209, 213, 219, 0.5)';
+            const textColor = isDark ? '#e5e7eb' : '#374151';
+
+            // Plot 1: Thrust and Torque Distributions
+            const distCtx = document.getElementById('plot-distributions').getContext('2d');
+            if (distChart) {
+                distChart.destroy();
+            }
+            distChart = new Chart(distCtx, {
+                type: 'line',
+                data: {
+                    labels: results.plot_r_R.map(x => x.toFixed(2)),
+                    datasets: [
+                        {
+                            label: 'Thrust (N/m)',
+                            data: results.plot_Thrust_elem,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Torque (N·m/m)',
+                            data: results.plot_Torque_elem,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Non-dimensional Radius (r/R)', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Thrust per unit length (N/m)', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { drawOnChartArea: false } // Only show Y-axis grid
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Torque per unit length (N·m/m)', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    }
+                }
+            });
+
+            // Plot 2: Aerodynamic Conditions
+            const aeroCtx = document.getElementById('plot-aero').getContext('2d');
+            if (aeroChart) {
+                aeroChart.destroy();
+            }
+            aeroChart = new Chart(aeroCtx, {
+                type: 'line',
+                data: {
+                    labels: results.plot_r_R.map(x => x.toFixed(2)),
+                    datasets: [
+                        {
+                            label: 'Inflow Angle (φ) [deg]',
+                            data: results.plot_phi,
+                            borderColor: 'rgb(16, 185, 129)',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Angle of Attack (α) [deg]',
+                            data: results.plot_alpha,
+                            borderColor: 'rgb(245, 158, 11)',
+                            borderDash: [5, 5],
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Axial Induction (a)',
+                            data: results.plot_a,
+                            borderColor: 'rgb(139, 92, 246)',
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Tangential Induction (a\')',
+                            data: results.plot_ap,
+                            borderColor: 'rgb(236, 72, 153)',
+                            borderDash: [5, 5],
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Non-dimensional Radius (r/R)', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Angle (degrees)', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { drawOnChartArea: true, color: gridColor }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Induction Factor', color: textColor },
+                            ticks: { color: textColor },
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    }
+                }
+            });
+        }
+
+        // Toggle dark mode (optional)
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
 </body>
 </html>
