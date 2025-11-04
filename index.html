@@ -362,16 +362,16 @@
                 const r = r_mid[i];
                 let a = 0.1;  // Initial guess for axial induction
                 let ap = 0.01; // Initial guess for tangential induction
+                
+                let phi = 0; // Declare phi here
+                let alpha = 0; // Declare alpha here
 
                 for (let iter = 0; iter < max_iter; iter++) {
                     // Inflow angle (phi)
-                    const phi = Math.atan2(V_inf * (1 + a), Omega * r * (1 - ap));
+                    phi = Math.atan2(V_inf * (1 + a), Omega * r * (1 - ap));
 
                     // Angle of attack (alpha)
-                    const alpha = theta[i] - phi;
-
-                    // Get Cl and Cd from data for this alpha
-                    // Using our linear interpolation function
+                    alpha = theta[i] - phi;
                     const Cl = interp1d(alpha_rad_data, cl_data, alpha);
                     const Cd = interp1d(alpha_rad_data, cd_data, alpha);
 
@@ -413,13 +413,13 @@
                 a_final[i] = a;
                 ap_final[i] = ap;
                 phi_final[i] = phi;
-                alpha_final[i] = theta[i] - phi;
+                alpha_final[i] = alpha;
 
                 // Calculate this element's thrust and torque contribution
                 const W_sq = (V_inf * (1 + a))**2 + (Omega * r * (1 - ap))**2;
-                const phi = Math.atan2(V_inf * (1 + a), Omega * r * (1 - ap));
-                const Cl = interp1d(alpha_rad_data, cl_data, theta[i] - phi);
-                const Cd = interp1d(alpha_rad_data, cd_data, theta[i] - phi);
+                // const phi = ... RECALCULATION REMOVED
+                const Cl = interp1d(alpha_rad_data, cl_data, alpha);
+                const Cd = interp1d(alpha_rad_data, cd_data, alpha);
                 const Cn = Cl * Math.cos(phi) - Cd * Math.sin(phi);
                 const Ct = Cl * Math.sin(phi) + Cd * Math.cos(phi);
                 
@@ -686,3 +686,4 @@
     </script>
 </body>
 </html>
+
